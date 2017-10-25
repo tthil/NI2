@@ -44,7 +44,7 @@ void ofApp::setup()
     printf("Opening first device ...\r\n");
     status = device.open(ANY_DEVICE);
     if (!HandleStatus(status))
-    ofExit(1);
+        ofExit(1);
     printf("%s Opened, Completed.\r\n",
            device.getDeviceInfo().getName());
 
@@ -59,7 +59,7 @@ void ofApp::setup()
     printf("Asking device to create a depth stream ...\r\n");
     status = depthSensor.create(device, SENSOR_DEPTH);
     if (!HandleStatus(status))
-    ofExit(1);
+        ofExit(1);
 
     printf("Setting video mode to 640x480x30 Depth 1MM ...\r\n");
     VideoMode vmod;
@@ -68,21 +68,22 @@ void ofApp::setup()
     vmod.setResolution(640, 480);
     status = depthSensor.setVideoMode(vmod);
     if (!HandleStatus(status))
-    ofExit(1);
+        ofExit(1);
     printf("Done.\r\n");
 
     printf("Starting stream ...\r\n");
     status = depthSensor.start();
     if (!HandleStatus(status))
-    ofExit(1);
+        ofExit(1);
     printf("Done.\r\n");
 
     printf("\r\n---------------------- OpenGL -------------------------\r\n");
     printf("Initializing OpenGL ...\r\n");
-    gl_texture = (OniRGB888Pixel *)malloc(
-        window_w * window_h * sizeof(OniRGB888Pixel));
-//    glutInit(&argc, (char **)argv);
-/*    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+    mesh.setMode(OF_PRIMITIVE_POINTS);
+    //    gl_texture = (OniRGB888Pixel *)malloc(
+    //        window_w * window_h * sizeof(OniRGB888Pixel));
+    //    glutInit(&argc, (char **)argv);
+    /*    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(window_w, window_h);
     glutCreateWindow("OpenGL | OpenNI 2.x CookBook Sample");
     glutKeyboardFunc(gl_KeyboardCallback);
@@ -97,10 +98,6 @@ void ofApp::setup()
 
 void ofApp::update()
 {
-}
-
-void ofApp::draw()
-{
     if (depthSensor.isValid())
     {
         Status status = STATUS_OK;
@@ -108,22 +105,22 @@ void ofApp::draw()
         int streamReadyIndex;
         status = OpenNI::waitForAnyStream(&streamPointer, 1,
                                           &streamReadyIndex, 500);
-        if (status == STATUS_OK && streamReadyIndex == 0)
+        if (HandleStatus(status) && streamReadyIndex == 0)
         {
             VideoFrameRef newFrame;
             status = depthSensor.readFrame(&newFrame);
-            if (status == STATUS_OK && newFrame.isValid())
+            if (HandleStatus(status) && newFrame.isValid())
             {
                 // Clear the OpenGL buffers
-                glClear(
-                    GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                mesh.clear();
 
                 // Setup the OpenGL viewpoint
                 glMatrixMode(GL_PROJECTION);
                 glPushMatrix();
                 glLoadIdentity();
                 glOrtho(0, window_w, window_h, 0, -1.0, 1.0);
-
+                
                 // UPDATING TEXTURE (DEPTH 1MM TO RGB888)
                 unsigned short maxDepth =
                     depthSensor.getMinPixelValue();
@@ -133,8 +130,7 @@ void ofApp::draw()
                 {
                     DepthPixel *depthCell = (DepthPixel *)((char *)newFrame.getData() +
                                                            (y * newFrame.getStrideInBytes()));
-                    for (int x = 0; x < newFrame.getWidth();
-                         ++x, ++depthCell)
+                    for (int x = 0; x < newFrame.getWidth(); ++x, ++depthCell)
                     {
                         if (maxDepth < *depthCell)
                         {
@@ -154,13 +150,11 @@ void ofApp::draw()
                 {
                     memset(depthHistogram, 0,
                            sizeof(depthHistogram));
-                    for (int y = 0;
-                         y < newFrame.getHeight(); ++y)
+                    for (int y = 0; y < newFrame.getHeight(); ++y)
                     {
                         DepthPixel *depthCell = (DepthPixel *)((char *)newFrame.getData() +
                                                                (y * newFrame.getStrideInBytes()));
-                        for (int x = 0; x < newFrame.getWidth();
-                             ++x, ++depthCell)
+                        for (int x = 0; x < newFrame.getWidth(); ++x, ++depthCell)
                         {
                             if (*depthCell != 0)
                             {
@@ -170,34 +164,23 @@ void ofApp::draw()
                         }
                     }
 
-                    for (int nIndex = 1;
-                         nIndex < sizeof(depthHistogram) / sizeof(int);
-                         nIndex++)
+                    for (int nIndex = 1; nIndex < sizeof(depthHistogram) / sizeof(int); nIndex++)
                     {
                         depthHistogram[nIndex] +=
                             depthHistogram[nIndex - 1];
                     }
                 }
 
-                double resizeFactor = min(
-                    (window_w / (double)newFrame.getWidth()),
-                    (window_h / (double)newFrame.getHeight()));
-                unsigned int texture_x = (unsigned int)(window_w -
-                                                        (resizeFactor * newFrame.getWidth())) /
-                                         2;
-                unsigned int texture_y = (unsigned int)(window_h -
-                                                        (resizeFactor * newFrame.getHeight())) /
-                                         2;
+                double resizeFactor = min((window_w / (double)newFrame.getWidth()), (window_h / (double)newFrame.getHeight()));
+                unsigned int texture_x = (unsigned int)(window_w - (resizeFactor * newFrame.getWidth())) / 2;
+                unsigned int texture_y = (unsigned int)(window_h - (resizeFactor * newFrame.getHeight())) / 2;
 
-                for (unsigned int y = 0;
-                     y < (window_h - 2 * texture_y); ++y)
+                for (unsigned int y = 0; y < (window_h - 2 * texture_y); ++y)
                 {
                     OniRGB888Pixel *texturePixel = gl_texture +
                                                    ((y + texture_y) * window_w) + texture_x;
                     DepthPixel lastPixel = 0;
-                    for (unsigned int x = 0;
-                         x < (window_w - 2 * texture_x);
-                         ++x, ++texturePixel)
+                    for (unsigned int x = 0; x < (window_w - 2 * texture_x); ++x, ++texturePixel)
                     {
                         DepthPixel *streamPixel =
                             (DepthPixel *)((char *)newFrame.getData() +
@@ -214,9 +197,7 @@ void ofApp::draw()
                         }
                         if (lastPixel != 0)
                         {
-                            char depthValue = ((float)lastPixel /
-                                               maxDepth) *
-                                              255;
+                            char depthValue = ((float)lastPixel / maxDepth) * 255;
                             if (color_enable)
                             {
                                 float colorPaletteFactor =
@@ -249,11 +230,8 @@ void ofApp::draw()
                 }
 
                 // Create the OpenGL texture map
-                glTexParameteri(GL_TEXTURE_2D,
-                                0x8191, GL_TRUE); // 0x8191 = GL_GENERATE_MIPMAP
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                             window_w, window_h, 0, GL_RGB,
-                             GL_UNSIGNED_BYTE, gl_texture);
+                glTexParameteri(GL_TEXTURE_2D, 0x8191, GL_TRUE); // 0x8191 = GL_GENERATE_MIPMAP
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, window_w, window_h, 0, GL_RGB, GL_UNSIGNED_BYTE, gl_texture);
 
                 glBegin(GL_QUADS);
                 glTexCoord2f(0.0f, 0.0f);
@@ -261,16 +239,22 @@ void ofApp::draw()
                 glTexCoord2f(0.0f, 1.0f);
                 glVertex3f(0.0f, (float)window_h, 0.0f);
                 glTexCoord2f(1.0f, 1.0f);
-                glVertex3f((float)window_w,
-                           (float)window_h, 0.0f);
+                glVertex3f((float)window_w, (float)window_h, 0.0f);
                 glTexCoord2f(1.0f, 0.0f);
                 glVertex3f((float)window_w, 0.0f, 0.0f);
                 glEnd();
 
-//                glutSwapBuffers();
+                mesh.addVertices(gl_texture);
+                //                glutSwapBuffers();
             }
         }
     }
+}
+
+void ofApp::draw()
+{
+    ofBackground(0);
+    mesh.draw();
 }
 
 void ofApp::keyPressed(int key)

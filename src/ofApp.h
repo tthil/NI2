@@ -51,6 +51,7 @@ class ofApp : public ofBaseApp
 	bool histogram_enable = false;
 	bool color_enable = false;
 	bool blackfill_enable = false;
+	ofMesh mesh;
 };
 
 /* 
